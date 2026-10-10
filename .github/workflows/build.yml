@@ -1,0 +1,57 @@
+name: Build FormBhro Tools APK
+
+on:
+workflow_dispatch:
+push:
+paths:
+- 'FormBhroTools_Starter.zip'
+- '.github/workflows/build.yml'
+
+jobs:
+build:
+runs-on: ubuntu-latest
+
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Extract starter ZIP
+    run: |
+      unzip -o FormBhroTools_Starter.zip -d starter
+
+  - name: Setup Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
+
+  - name: Setup Flutter
+    uses: subosito/flutter-action@v2
+    with:
+      channel: stable
+
+  - name: Create Flutter project
+    run: |
+      flutter create --org com.formbhro --project-name formbhro_tools app
+
+  - name: Copy app source files
+    run: |
+      cp -r starter/lib app/
+      cp starter/pubspec.yaml app/
+      mkdir -p app/android/app/src/main/kotlin/com/formbhro/tools
+      cp starter/android_patch/app/src/main/kotlin/com/formbhro/tools/*.kt app/android/app/src/main/kotlin/com/formbhro/tools/
+      cp starter/android_patch/app/src/main/AndroidManifest.xml app/android/app/src/main/AndroidManifest.xml
+      sed -i 's/namespace = "[^"]*"/namespace = "com.formbhro.tools"/' app/android/app/build.gradle.kts
+      sed -i 's/applicationId = "[^"]*"/applicationId = "com.formbhro.tools"/' app/android/app/build.gradle.kts
+
+  - name: Build APK
+    run: |
+      cd app
+      flutter pub get
+      flutter build apk --debug
+
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: FormBhro-Tools-APK
+      path: app/build/app/outputs/flutter-apk/app-debug.apk
