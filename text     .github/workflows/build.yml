@@ -1,0 +1,44 @@
+name: Build FormBhro Tools APK
+
+on:
+workflow_dispatch:
+push:
+paths:
+- 'app/'
+- 'lib/'
+- 'pubspec.yaml'
+- '.github/workflows/build.yml'
+
+jobs:
+build:
+runs-on: ubuntu-latest
+steps:
+- name: Checkout repository
+uses: actions/checkout@v4
+
+  - name: Extract starter ZIP
+    run: |
+      unzip -o FormBhroTools_Starter.zip -d starter
+      mkdir -p app
+      cp -r starter/lib starter/pubspec.yaml app/
+      cp -r starter/android_patch app/
+
+  - name: Setup Flutter
+    uses: subosito/flutter-action@v2
+    with:
+      channel: stable
+
+  - name: Create Android project
+    run: |
+      flutter create --org com.formbhro --project-name formbhro_tools app
+      cp -r starter/lib app/
+      cp starter/pubspec.yaml app/
+      cd app
+      flutter pub get
+      flutter build apk --debug
+
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: FormBhro-Tools-APK
+      path: app/build/app/outputs/flutter-apk/app-debug.apk
